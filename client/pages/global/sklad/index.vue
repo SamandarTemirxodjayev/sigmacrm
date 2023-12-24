@@ -4,7 +4,7 @@
       <div class="my-8">
         <div class="flex float-right mb-4 mr-10">
           <div
-            @click="handlePopUp"
+            @click="() => isPopupOpen = true"
             class="text-white bg-blue-500 hover:bg-blue-600 py-2 px-3 rounded-sm font-semibold"
           >
             Добавить Продукта
@@ -47,7 +47,7 @@
       >
         <div class="bg-white p-10 rounded-md shadow-lg w-[400px]">
           <button
-            @click="handleClosePopUp"
+            @click="() => isPopupOpen = false"
             class="relative -top-8 -right-8 float-right text-gray-500 hover:text-gray-700"
           >
             <Icon name="material-symbols:close" width="25" height="25" />
@@ -96,14 +96,6 @@ let products = ref();
 let name = ref();
 
 let isPopupOpen = ref(false);
-
-const handlePopUp = () => {
-  isPopupOpen.value = true;
-};
-
-const handleClosePopUp = () => {
-  isPopupOpen.value = false;
-};
 
 onMounted(async () => {
   const res = await $global.get("/global");

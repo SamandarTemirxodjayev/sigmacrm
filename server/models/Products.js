@@ -13,63 +13,20 @@ var productsSchema = new mongoose.Schema({
     default: null
   },
   date: {
-    day: {
-      type: Number
-    },
-    month: {
-      type: Number
-    },
-    year: {
-      type: Number
-    }
-  },
-  time: {
-    hour: {
-      type: Number,
-      default: null
-    },
-    minute: {
-      type: Number,
-      default: null
-    },
-    second: {
-      type: Number,
-      default: null
-    }
+    type: Date,
+    default: Date.now,
   },
   saledDate: {
-    day: {
-      type: Number,
-      default: null
-    },
-    month: {
-      type: Number,
-      default: null
-    },
-    year: {
-      type: Number,
-      default: null
-    }
-  },
-  saledTime: {
-    hour: {
-      type: Number,
-      default: null
-    },
-    minute: {
-      type: Number,
-      default: null
-    },
-    second: {
-      type: Number,
-      default: null
-    }
+    type: Date,
+    default: null
   },
   saledCompany: {
     type: String,
     default: null
   }
 });
+productsSchema.set('timestamps', true);
+
 var Products = mongoose.model("products", productsSchema);
 
 module.exports = Products;

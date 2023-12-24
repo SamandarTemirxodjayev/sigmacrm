@@ -2,34 +2,18 @@ var mongoose = require("mongoose");
 
 var xarajatSchema = new mongoose.Schema({
   name: {
-    type: String
+    type: String,
   },
   amount: {
-    type: Number
+    type: Number,
   },
   date: {
-    day: {
-      type: Number
-    },
-    month: {
-      type: Number
-    },
-    year: {
-      type: Number
-    }
-  },
-  time: {
-    hour: {
-      type: Number
-    },
-    minute: {
-      type: Number
-    },
-    second: {
-      type: Number
-    }
+    type: Date,
+    default: Date.now,
   }
 });
+xarajatSchema.set('timestamps', true);
+
 var Xarajats = mongoose.model("xarajat", xarajatSchema);
 
 module.exports = Xarajats;

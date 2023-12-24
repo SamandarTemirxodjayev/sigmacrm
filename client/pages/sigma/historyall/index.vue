@@ -7,12 +7,12 @@
             <label for="kirim" class="font-semibold mr-3"
               >Дата Поступления:
             </label>
-            <input
-              id="kirim"
-              type="date"
-              @change="handleChange"
+            <VueDatePicker
+              class="border border-gray-500 rounded-[5px] min-w-[350px]"
               v-model="date"
-              class="p-2 border border-gray-500 rounded-md"
+              range
+              :max-date="new Date()"
+              time-picker-inline
             />
           </div>
         </div>
@@ -61,7 +61,7 @@
                 <div>{{ (item.price * item.quantity).toFixed(2) }}$</div>
               </td>
               <td class="px-5 py-3 border border-black">
-                <div>{{ formattedDate(item.date, item.time) }}</div>
+                <div>{{ formatTime(item.date) }}</div>
               </td>
             </tr>
           </tbody>
@@ -89,6 +89,9 @@
 </template>
 
 <script setup>
+import VueDatePicker from "@vuepic/vue-datepicker";
+import "@vuepic/vue-datepicker/dist/main.css";
+
 let loading = ref(true);
 let history = ref([]);
 let currentPage = ref(1);
@@ -97,7 +100,6 @@ let date = ref();
 onMounted(async () => {
   try {
     const res = await $.get("/historyall");
-    console.log(res.data);
     history.value = res.data;
   } catch (error) {
     console.log(error);
@@ -146,21 +148,17 @@ const nextPage = async () => {
   }
   loading.value = false;
 };
-const handleChange = async () => {
-  const parts = date.value.split("-");
-
-  const formattedDate = {
-    year: parseInt(parts[0]),
-    month: parseInt(parts[1]),
-    day: parseInt(parts[2]),
-  };
-  const res = await $.post("/historyall", {
-    date: formattedDate,
-  });
-  history.value = res.data;
-};
-
-const formattedDate = (date, time) => {
-  return `${date.day}.${date.month}.${date.year} ${time.hour}:${time.minute}:${time.second}`;
-};
+watch(date, async () => {
+  loading.value = true;
+  try {
+    const res = await $.post("/historyall", {
+      startDate: date.value && date.value[0] ? date.value[0] : null,
+      endDate: date.value && date.value[1] ? date.value[1] : null,
+    });
+    history.value = res.data;
+  } catch (error) {
+    return console.log(error);
+  }
+  loading.value = false;
+});
 </script>

@@ -20,34 +20,12 @@ var partiyaSchema = new mongoose.Schema({
     type: String
   },
   date: {
-    day: {
-      type: Number,
-      default: null
-    },
-    month: {
-      type: Number,
-      default: null
-    },
-    year: {
-      type: Number,
-      default: null
-    }
-  },
-  time: {
-    hour: {
-      type: Number,
-      default: null
-    },
-    minute: {
-      type: Number,
-      default: null
-    },
-    second: {
-      type: Number,
-      default: null
-    }
+    type: Date,
+    default: Date.now
   },
 });
+partiyaSchema.set('timestamps', true);
+
 var Partiya = mongoose.model("partiya", partiyaSchema);
 
 module.exports = Partiya;

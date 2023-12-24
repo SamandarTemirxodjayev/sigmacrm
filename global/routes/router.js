@@ -4,11 +4,12 @@ var router = express.Router();
 
 router.get("/", userController.index);
 router.put("/xarajat", userController.addXarajat);
+router.delete("/xarajat/:id", userController.deleteXarajat);
+router.patch("/xarajat/:id", userController.patchXarajat);
 router.get("/xarajat", userController.getXarajat);
 router.post("/xarajat", userController.getFilteredXarajat);
 router.post("/xarajats", userController.patchFilteredXarajat);
 router.post("/xarajatAgg", userController.aggregateXarajat);
-router.patch("/xarajatAgg", userController.aggregateXarajatwithYear);
 
 router.put("/global", userController.addGlobal);
 router.get("/global", userController.getGlobal);
@@ -24,8 +25,6 @@ router.post("/historyr", userController.getFilteredHistoryr);
 router.put("/products", userController.addProducts);
 router.put("/sellProducts", userController.addSellProducts);
 router.post("/productsAgg", userController.aggregateProducts);
-router.patch("/productsAgg", userController.aggregateProductsWithYear);
-router.post("/productsa", userController.aggregateProductsA);
 
 router.post("/dollar", userController.getDollar);
 router.post("/rubl", userController.getRubl);

@@ -51,7 +51,7 @@
               >
                 <td class="px-5 py-3 border border-black">{{ item }}</td>
                 <td class="px-5 py-3 border border-black">
-                  <div>{{ datas[i + 1].toFixed(2) }}$</div>
+                  <div>{{ datas[i].totalAmount.toFixed(2) }}$</div>
                 </td>
               </tr>
               <tr class="hover:bg-gray-200 cursor-pointer font-bold">
@@ -83,7 +83,7 @@
               >
                 <td class="px-5 py-3 border border-black">{{ item }}</td>
                 <td class="px-5 py-3 border border-black">
-                  <div>{{ datas2[i + 1].toFixed(2) }}$</div>
+                  <div>{{ datas2[i].totalAmount.toFixed(2) }}$</div>
                 </td>
               </tr>
               <tr class="hover:bg-gray-200 cursor-pointer font-bold">
@@ -103,38 +103,30 @@
               <tr>
                 <th
                   colspan="2"
-                  class="px-5 py-3 text-left border border-black text-center bg-blue-500"
+                  class="text-[#002766] px-5 py-3 text-left bg-[#E6F7FF]"
                 >
                   Отчет
                 </th>
               </tr>
             </thead>
             <tbody class="font-semibold">
-              <tr class="hover:bg-gray-200 cursor-pointer">
-                <td class="px-5 py-3 border border-black bg-green-500">
-                  Прибыл:
-                </td>
-                <td class="px-5 py-3 border border-black bg-green-500">
+              <tr class="cursor-pointer text-[#389E0D]">
+                <td class="px-5 py-3 bg-[#D9F7BE]">Прибыл:</td>
+                <td class="px-5 py-3 bg-[#D9F7BE]">
                   <div>{{ foydaSummary.toFixed(2) }}$</div>
                 </td>
               </tr>
-              <tr class="hover:bg-gray-200 cursor-pointer">
-                <td class="px-5 py-3 border border-black bg-red-500">
-                  Расходы:
-                </td>
-                <td class="px-5 py-3 border border-black bg-red-500">
+              <tr class="cursor-pointer text-[#CF1322]">
+                <td class="px-5 py-3 bg-[#FFCCC7]">Расходы:</td>
+                <td class="px-5 py-3 bg-[#FFCCC7]">
                   <div>{{ xarajatSummary.toFixed(2) }}$</div>
                 </td>
               </tr>
-              <tr class="hover:bg-gray-200 cursor-pointer font-bold">
-                <td
-                  colspan="2"
-                  class="px-5 py-3 border border-black bg-yellow-300"
-                >
-                  <div class="text-center">
-                    Итого: {{ (foydaSummary - xarajatSummary).toFixed(2) }}$
-                  </div>
+              <tr class="cursor-pointer font-bold">
+                <td class="px-5 py-3">
+                  <div>Итого:</div>
                 </td>
+                <td>{{ (foydaSummary - xarajatSummary).toFixed(2) }}$</td>
               </tr>
             </tbody>
           </table>
@@ -191,21 +183,25 @@ const labels = ref([
   "Декабрь",
 ]);
 let loading = ref(true);
+
 onMounted(async () => {
   const prores = await $global.post("/productsAgg");
-  for (const key in prores.data.priceSummary) {
-    foydaSummary.value += prores.data.priceSummary[key];
+
+  for (const key in prores.data.result) {
+    foydaSummary.value += prores.data.result[key].totalAmount;
   }
-  datas2.value = prores.data.priceSummary;
-  const monthLabelss2 = Array.from({ length: 12 }, (_, i) =>
-    (i + 1).toString()
-  );
+  datas2.value = prores.data.result;
+  const monthLabelss2 = Array.from({ length: 12 }, (_, i) => i + 1);
   data2.value = {
     labels: labels.value,
     datasets: [
       {
         label: "Прибыл",
-        data: monthLabelss2.map((month) => datas2.value[month] || 0),
+        data: monthLabelss2.map(
+          (month) =>
+            datas2.value.find((item) => item._id.month === month)
+              ?.totalAmount || 0
+        ),
         fill: false,
         borderColor: "rgba(16, 185, 129, 1)",
         pointStyle: "star",
@@ -216,18 +212,24 @@ onMounted(async () => {
   };
 
   const res = await $global.post("/xarajatAgg");
-  datas.value = res.data.monthlySummary;
-  for (const key in res.data.monthlySummary) {
-    xarajatSummary.value += res.data.monthlySummary[key];
+  datas.value = res.data.result;
+
+  for (const key in res.data.result) {
+    xarajatSummary.value += res.data.result[key].totalAmount;
   }
-  const monthLabelss = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+
+  const monthLabels = Array.from({ length: 12 }, (_, i) => i + 1);
 
   data.value = {
     labels: labels.value,
     datasets: [
       {
         label: "Расходы",
-        data: monthLabelss.map((month) => datas.value[month] || 0),
+        data: monthLabels.map(
+          (month) =>
+            datas.value.find((item) => item._id.month === month)?.totalAmount ||
+            0
+        ),
         fill: false,
         borderColor: "rgba(239, 68, 68, 1)",
         pointStyle: "star",
@@ -239,24 +241,27 @@ onMounted(async () => {
   loading.value = false;
 });
 const changeYear = async () => {
-  loading.value = true;
-  const prores = await $global.patch("/productsAgg", {
+  const prores = await $global.post("/productsAgg", {
     year: selectedYear.value,
   });
+
   foydaSummary.value = 0;
-  for (const key in prores.data.priceSummary) {
-    foydaSummary.value += prores.data.priceSummary[key];
+
+  for (const key in prores.data.result) {
+    foydaSummary.value += prores.data.result[key].totalAmount;
   }
-  datas2.value = prores.data.priceSummary;
-  const monthLabelss2 = Array.from({ length: 12 }, (_, i) =>
-    (i + 1).toString()
-  );
+  datas2.value = prores.data.result;
+  const monthLabelss2 = Array.from({ length: 12 }, (_, i) => i + 1);
   data2.value = {
     labels: labels.value,
     datasets: [
       {
         label: "Прибыл",
-        data: monthLabelss2.map((month) => datas2.value[month] || 0),
+        data: monthLabelss2.map(
+          (month) =>
+            datas2.value.find((item) => item._id.month === month)
+              ?.totalAmount || 0
+        ),
         fill: false,
         borderColor: "rgba(16, 185, 129, 1)",
         pointStyle: "star",
@@ -266,20 +271,27 @@ const changeYear = async () => {
     ],
   };
 
-  const res = await $global.patch("/xarajatAgg", { year: selectedYear.value });
-  datas.value = res.data.monthlySummary;
+  const res = await $global.post("/xarajatAgg", { year: selectedYear.value });
+  datas.value = res.data.result;
+
   xarajatSummary.value = 0;
-  for (const key in res.data.monthlySummary) {
-    xarajatSummary.value += res.data.monthlySummary[key];
+
+  for (const key in res.data.result) {
+    xarajatSummary.value += res.data.result[key].totalAmount;
   }
-  const monthLabelss = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
+
+  const monthLabels = Array.from({ length: 12 }, (_, i) => i + 1);
 
   data.value = {
     labels: labels.value,
     datasets: [
       {
         label: "Расходы",
-        data: monthLabelss.map((month) => datas.value[month] || 0),
+        data: monthLabels.map(
+          (month) =>
+            datas.value.find((item) => item._id.month === month)?.totalAmount ||
+            0
+        ),
         fill: false,
         borderColor: "rgba(239, 68, 68, 1)",
         pointStyle: "star",

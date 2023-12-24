@@ -14,6 +14,7 @@ var globalsSchema = new mongoose.Schema({
     default: Date.now
   }
 });
+globalsSchema.set('timestamps', true);
 var Globals = mongoose.model("globals", globalsSchema);
 
 module.exports = Globals;

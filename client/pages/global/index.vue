@@ -7,11 +7,11 @@
             <div class="flex justify-between mx-3 items-center my-2">
               <div class="font-semibold">Дата:</div>
               <div>
-                <input
-                  type="date"
-                  class="border border-gray-300 rounded-md p-1"
+                <VueDatePicker
+                  class="border border-gray-500 rounded-[5px] mx-auto max-w-[80%]"
                   v-model="dateOfFoyda"
-                  @change="handleChangeDateOfFoyda"
+                  :enable-time-picker="false"
+                  disabled
                 />
               </div>
             </div>
@@ -20,7 +20,7 @@
             >
               <div class="font-semibold">Доход:</div>
               <div class="text-[#196CF4] text-xl font-bold">
-                {{ daromad.toFixed(2) }} $
+                {{ foydaSummary.toFixed(2) }} $
               </div>
             </div>
           </div>
@@ -28,11 +28,11 @@
             <div class="flex justify-between mx-3 items-center my-2">
               <div class="font-semibold">Дата:</div>
               <div>
-                <input
-                  type="date"
-                  class="border border-gray-300 rounded-md p-1"
+                <VueDatePicker
+                  class="border border-gray-500 rounded-[5px] mx-auto max-w-[80%]"
                   v-model="dateOfXarajat"
-                  @change="handleChangeDateOfXarajat"
+                  :enable-time-picker="false"
+                  disabled
                 />
               </div>
             </div>
@@ -41,19 +41,20 @@
             >
               <div class="font-semibold">Расходы:</div>
               <div class="text-[red] text-xl font-bold">
-                {{ Xarajats.toString() }} $
+                {{ xarajatSummary }} $
               </div>
             </div>
           </div>
           <div class="flex-1 m-4 p-2 shadow-xl border border-gray-300">
             <div class="flex justify-between mx-3 items-center my-2">
               <div class="font-semibold">Дата:</div>
-              <div>
-                <input
-                  type="date"
-                  class="border border-gray-300 rounded-md p-1"
+              <div class="">
+                <VueDatePicker
+                  class="border border-gray-500 rounded-[5px] mx-auto max-w-[80%]"
                   v-model="dateOfDollar"
-                  @change="handleChangeDollar"
+                  :max-date="new Date()"
+                  time-picker-inline
+                  :enable-time-picker="false"
                 />
               </div>
             </div>
@@ -62,7 +63,7 @@
             >
               <div class="font-semibold">Курс Доллара:</div>
               <div class="text-[#196CF4] text-xl font-bold">
-                {{ dollarRate.toFixed(2) }} сум
+                {{ dollarRate }} сум
               </div>
             </div>
           </div>
@@ -70,11 +71,12 @@
             <div class="flex justify-between mx-3 items-center my-2">
               <div class="font-semibold">Дата:</div>
               <div>
-                <input
-                  type="date"
-                  class="border border-gray-300 rounded-md p-1"
+                <VueDatePicker
+                  class="border border-gray-500 rounded-[5px] mx-auto max-w-[80%]"
                   v-model="dateOfRubl"
-                  @change="handleChangeRubl"
+                  :max-date="new Date()"
+                  time-picker-inline
+                  :enable-time-picker="false"
                 />
               </div>
             </div>
@@ -83,7 +85,7 @@
             >
               <div class="font-semibold">Курс рубля:</div>
               <div class="text-[#196CF4] text-xl font-bold">
-                {{ rublRate.toFixed(2) }} сум
+                {{ rublRate }} сум
               </div>
             </div>
           </div>
@@ -164,17 +166,14 @@
               </td>
               <td class="px-5 py-3 border border-black">
                 <div>
-                  {{ formattedDate(item.product.date, item.product.time) }}
+                  {{ formatTime(item.product.date) }}
                 </div>
               </td>
               <td class="px-5 py-3 border border-black">
                 <div>
                   {{
                     item.product.saledCompany
-                      ? formattedDate(
-                          item.product.saledDate,
-                          item.product.saledTime
-                        )
+                      ? formatTime(item.product.saledDate)
                       : ""
                   }}
                 </div>
@@ -191,6 +190,9 @@
 </template>
 
 <script setup>
+import VueDatePicker from "@vuepic/vue-datepicker";
+import "@vuepic/vue-datepicker/dist/main.css";
+
 let loading = ref(true);
 let history = ref([]);
 let currentPage = ref(1);
@@ -217,58 +219,49 @@ ChartJS.register(
   Legend
 );
 const data = ref();
-const data2 = ref();
-const dateOfFoyda = ref();
-const dateOfXarajat = ref();
-const dateOfDollar = ref();
-const dateOfRubl = ref();
-const Xarajats = ref(0);
-const daromad = ref(0);
-let dates = reactive({
-  day: "",
-  month: "",
-  year: "",
-});
+let data2 = ref();
+const datas2 = ref();
+const dateOfFoyda = ref(new Date());
+const dateOfXarajat = ref(new Date());
+const dateOfDollar = ref(new Date());
+const dateOfRubl = ref(new Date());
 let dollarRate = ref(0);
 let rublRate = ref(0);
 let Products = ref();
+let foydaSummary = ref(0);
+let xarajatSummary = ref(0);
 
-const updateTimeAndDate = () => {
-  const now = new Date();
-  dates.day = now.getDate();
-  dates.month = now.getMonth() + 1;
-  dates.year = now.getFullYear();
-};
+const labels = [
+  "Январь",
+  "Февраль",
+  "Март",
+  "Апрель",
+  "Май",
+  "Июнь",
+  "Июль",
+  "Август",
+  "Сентябрь",
+  "Октябрь",
+  "Ноябрь",
+  "Декабрь",
+];
 
 onMounted(async () => {
   try {
     const prores = await $global.post("/productsAgg");
-    Products.value = prores.data;
-    datas.value = prores.data.priceSummary;
-    const monthLabelss = Array.from({ length: 12 }, (_, i) =>
-      (i + 1).toString()
-    );
-    const monthLabels = [
-      "Январь",
-      "Февраль",
-      "Март",
-      "Апрель",
-      "Май",
-      "Июнь",
-      "Июль",
-      "Август",
-      "Сентябрь",
-      "Октябрь",
-      "Ноябрь",
-      "Декабрь",
-    ];
 
+    datas2.value = prores.data.result;
+    const monthLabelss2 = Array.from({ length: 12 }, (_, i) => i + 1);
     data2.value = {
-      labels: monthLabels,
+      labels: labels,
       datasets: [
         {
-          label: "Прибыли",
-          data: monthLabelss.map((month) => datas.value[month] || 0),
+          label: "Прибыл",
+          data: monthLabelss2.map(
+            (month) =>
+              datas2.value.find((item) => item._id.month === month)
+                ?.totalAmount || 0
+          ),
           fill: false,
           borderColor: "rgba(16, 185, 129, 1)",
           pointStyle: "star",
@@ -283,74 +276,52 @@ onMounted(async () => {
       },
     });
     history.value = res.data;
-    dateOfFoyda.value = new Date().toISOString().slice(0, 10);
-    dateOfXarajat.value = new Date().toISOString().slice(0, 10);
-    const now = new Date();
-    dates.day = now.getDate();
-    dates.month = now.getMonth() + 1;
-    dates.year = now.getFullYear();
-    const xarajatres = await $global.post("/xarajats", {
-      date: {
-        year: dates.year,
-        day: dates.day,
-        month: dates.month,
-      },
-    });
-    Xarajats.value = xarajatres.data;
-    const foydares = await $global.post("/productsa", {
-      date: {
-        year: dates.year,
-        day: dates.day,
-        month: dates.month,
-      },
-    });
-    daromad.value = foydares.data.priceSummary;
-    const dollarres = await $global.post("/dollar", {
-      date: `${dates.year}-${dates.month
+
+    const prores2 = await $global.post("/productsAgg");
+
+    for (const key in prores2.data.result) {
+      foydaSummary.value += prores.data.result[key].totalAmount;
+    }
+
+    const resx = await $global.post("/xarajatAgg");
+    datas.value = res.data.result;
+
+    for (const key in resx.data.result) {
+      xarajatSummary.value += resx.data.result[key].totalAmount;
+    }
+
+    let date = new Date();
+    const dollarres = await $.post("/dollar", {
+      date: `${date.getFullYear()}-${(date.getMonth() + 1)
         .toString()
-        .padStart(2, "0")}-${dates.day.toString().padStart(2, "0")}`,
+        .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`,
     });
     dollarRate.value = dollarres.data.data.crdhldBillAmt;
-    dateOfDollar.value = `${dates.year}-${dates.month
-      .toString()
-      .padStart(2, "0")}-${dates.day.toString().padStart(2, "0")}`;
-    const rublres = await $global.post("/rubl", {
-      date: `${dates.year}-${dates.month
+
+    const rublres = await $.post("/rubl", {
+      date: `${date.getFullYear()}-${(date.getMonth() + 1)
         .toString()
-        .padStart(2, "0")}-${dates.day.toString().padStart(2, "0")}`,
+        .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`,
     });
     rublRate.value = rublres.data.data.crdhldBillAmt;
-    dateOfRubl.value = `${dates.year}-${dates.month
-      .toString()
-      .padStart(2, "0")}-${dates.day.toString().padStart(2, "0")}`;
   } catch (error) {
     console.log(error);
   }
   const res = await $global.post("/xarajatAgg");
-  datas.value = res.data.monthlySummary;
+  datas.value = res.data.result;
 
-  const monthLabelss = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
-  const monthLabels = [
-    "Январь",
-    "Февраль",
-    "Март",
-    "Апрель",
-    "Май",
-    "Июнь",
-    "Июль",
-    "Август",
-    "Сентябрь",
-    "Октябрь",
-    "Ноябрь",
-    "Декабрь",
-  ];
+  const monthLabels = Array.from({ length: 12 }, (_, i) => i + 1);
 
   data.value = {
-    labels: monthLabels,
+    labels: labels,
     datasets: [
       {
         label: "Расходы",
-        data: monthLabelss.map((month) => datas.value[month] || 0),
+        data: monthLabels.map(
+          (month) =>
+            datas.value.find((item) => item._id.month === month)?.totalAmount ||
+            0
+        ),
         fill: false,
         borderColor: "rgba(239, 68, 68, 1)",
         pointStyle: "star",
@@ -360,60 +331,31 @@ onMounted(async () => {
     ],
   };
   loading.value = false;
-  updateTimeAndDate();
-  setInterval(updateTimeAndDate, 500);
 });
-const formattedDate = (date, time) => {
-  return `${date.day}.${date.month}.${date.year} ${time.hour}:${time.minute}:${time.second}`;
-};
-const handleChangeDollar = async () => {
+watch(dateOfDollar, async () => {
   try {
-    const res = await $global.post("/dollar", {
-      date: dateOfDollar.value,
+    let date = new Date(dateOfDollar.value);
+    const dollarres = await $.post("/dollar", {
+      date: `${date.getFullYear()}-${(date.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`,
     });
-    dollarRate.value = res.data.data.crdhldBillAmt;
+    dollarRate.value = dollarres.data.data.crdhldBillAmt;
   } catch (error) {
-    console.error(error);
+    return console.log(error);
   }
-};
-const handleChangeRubl = async () => {
+});
+watch(dateOfRubl, async () => {
   try {
-    const res = await $global.post("/rubl", {
-      date: dateOfRubl.value,
+    let date = new Date(dateOfRubl.value);
+    const dollarres = await $.post("/rubl", {
+      date: `${date.getFullYear()}-${(date.getMonth() + 1)
+        .toString()
+        .padStart(2, "0")}-${date.getDate().toString().padStart(2, "0")}`,
     });
-    rublRate.value = res.data.data.crdhldBillAmt;
+    rublRate.value = dollarres.data.data.crdhldBillAmt;
   } catch (error) {
-    console.error(error);
+    return console.log(error);
   }
-};
-const handleChangeDateOfXarajat = async () => {
-  try {
-    const f = dateOfXarajat.value.split("-");
-    const xarajatres = await $global.post("/xarajats", {
-      date: {
-        year: parseInt(f[0]),
-        day: parseInt(f[2]),
-        month: parseInt(f[1]),
-      },
-    });
-    Xarajats.value = xarajatres.data;
-  } catch (error) {
-    console.log(error);
-  }
-};
-const handleChangeDateOfFoyda = async () => {
-  try {
-    const f = dateOfFoyda.value.split("-");
-    const foydares = await $global.post("/productsa", {
-      date: {
-        year: parseInt(f[0]),
-        day: parseInt(f[2]),
-        month: parseInt(f[1]),
-      },
-    });
-    daromad.value = foydares.data.priceSummary;
-  } catch (error) {
-    console.log(error);
-  }
-};
+});
 </script>

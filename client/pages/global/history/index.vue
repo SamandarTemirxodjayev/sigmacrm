@@ -7,12 +7,12 @@
             <label for="kirim" class="font-semibold mr-3"
               >Дата Поступления:
             </label>
-            <input
-              id="kirim"
-              type="date"
-              @change="handleChangeKirim"
+            <VueDatePicker
+              class="border border-gray-500 rounded-[5px] min-w-[350px]"
               v-model="date"
-              class="p-2 border border-gray-500 rounded-md"
+              range
+              :max-date="new Date()"
+              time-picker-inline
             />
           </div>
         </div>
@@ -55,7 +55,7 @@
               class="hover:bg-gray-200 cursor-pointer"
             >
               <td class="px-5 py-3 border border-black">
-                {{ item.product.name.name }}
+                {{ item.product ? item.product.name.name : item.name.name }}
               </td>
               <td class="px-5 py-3 border border-black">
                 <div>{{ item.status == 0 ? "Kirim" : "Chiqim" }}</div>
@@ -64,32 +64,42 @@
                 <div>{{ item.quantity }}</div>
               </td>
               <td class="px-5 py-3 border border-black">
-                <div>{{ item.product.price }}$</div>
-              </td>
-              <td class="px-5 py-3 border border-black">
-                <div>{{ item.product.company }}</div>
-              </td>
-              <td class="px-5 py-3 border border-black">
-                <div>{{ item.product.saledCompany }}</div>
-              </td>
-              <td class="px-5 py-3 border border-black">
-                <div>{{ item.product.saledPrice }}$</div>
+                <div>{{ item.product ? item.product.price : item.price }}$</div>
               </td>
               <td class="px-5 py-3 border border-black">
                 <div>
-                  {{ formattedDate(item.product.date, item.product.time) }}
+                  {{ item.product ? item.product.company : item.company }}
                 </div>
               </td>
               <td class="px-5 py-3 border border-black">
                 <div>
                   {{
+                    item.product ? item.product.saledCompany : item.saledCompany
+                  }}
+                </div>
+              </td>
+              <td class="px-5 py-3 border border-black">
+                <div>
+                  {{
+                    item.product ? item.product.saledPrice : item.saledPrice
+                  }}$
+                </div>
+              </td>
+              <td class="px-5 py-3 border border-black">
+                <div>
+                  {{ formatTime(item.product.date) }}
+                </div>
+              </td>
+              <td class="px-5 py-3 border border-black">
+                <div v-if="item.product">
+                  {{
                     item.product.saledCompany
-                      ? formattedDate(
-                          item.product.saledDate,
-                          item.product.saledTime
-                        )
+                      ? formatTime(item.product.saledDate)
                       : ""
                   }}
+                </div>
+                <div v-else>
+                  {{ item.saledCompany ? formatTime(item.saledDate) : "" }}
                 </div>
               </td>
             </tr>
@@ -118,6 +128,9 @@
 </template>
 
 <script setup>
+import VueDatePicker from "@vuepic/vue-datepicker";
+import "@vuepic/vue-datepicker/dist/main.css";
+
 let loading = ref(true);
 let history = ref([]);
 let currentPage = ref(1);
@@ -179,35 +192,17 @@ const nextPage = async () => {
   }
   loading.value = false;
 };
-const handleChangeKirim = async () => {
-  const parts = date.value.split("-");
-
-  const formattedDate = {
-    year: parseInt(parts[0]),
-    month: parseInt(parts[1]),
-    day: parseInt(parts[2]),
-  };
-  const res = await $global.post("/history", {
-    date: formattedDate,
-  });
-  history.value = res.data;
-};
-const handleChangeChiqim = async () => {
-  const parts = date2.value.split("-");
-
-  const formattedDate = {
-    year: parseInt(parts[0]),
-    month: parseInt(parts[1]),
-    day: parseInt(parts[2]),
-  };
-  const res = await $global.post("/historyr", {
-    date: formattedDate,
-  });
-  console.log(res);
-  history.value = res.data;
-};
-
-const formattedDate = (date, time) => {
-  return `${date.day}.${date.month}.${date.year} ${time.hour}:${time.minute}:${time.second}`;
-};
+watch(date, async () => {
+  loading.value = true;
+  try {
+    const res = await $global.post("/historyr", {
+      startDate: date.value && date.value[0] ? date.value[0] : null,
+      endDate: date.value && date.value[1] ? date.value[1] : null,
+    });
+    history.value = res.data;
+  } catch (error) {
+    return console.log(error);
+  }
+  loading.value = false;
+});
 </script>

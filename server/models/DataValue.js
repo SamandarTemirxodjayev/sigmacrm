@@ -12,6 +12,8 @@ const DataValueSchema = new mongoose.Schema({
     default: Date.now,
   },
 });
+DataValueSchema.set('timestamps', true);
+
 const DataValue = mongoose.model("datavalue", DataValueSchema);
 
 module.exports = DataValue;

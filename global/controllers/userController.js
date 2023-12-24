@@ -1,3 +1,4 @@
+var moment = require("moment");
 const Globals = require("../models/Globals");
 const History = require("../models/History");
 const Partiya = require("../models/Partiya");
@@ -12,8 +13,6 @@ exports.addXarajat = async (req, res) => {
     var xarajat = new Xarajats({
       name: req.body.name,
       amount: req.body.amount,
-      date: req.body.date,
-      time: req.body.time
     });
     await xarajat.save();
     res.json(xarajat);
@@ -21,6 +20,30 @@ exports.addXarajat = async (req, res) => {
     res.json(error);
   }
 };
+exports.deleteXarajat = async (req, res) => {
+  try {
+    await Xarajats.deleteOne({ _id: req.params.id });
+    return res.json({ message: "Xarajat deleted" });
+  } catch (error) {
+    return res.json(error);
+  }
+};
+exports.patchXarajat = async (req, res) => {
+  try {
+    await Xarajats.updateOne(
+      { _id: req.params.id },
+      {
+        $set: {
+          name: req.body.name,
+          amount: req.body.amount,
+        },
+      }
+    );
+    return res.json({ message: "Xarajat updated" });
+  } catch (error) {
+    return res.json(error);
+  }
+}
 exports.getXarajat = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
@@ -37,17 +60,22 @@ exports.getXarajat = async (req, res) => {
   }
 };
 exports.getFilteredXarajat = async (req, res) => {
-  console.log(req.body.date);
   try {
-    const { date } = req.body;
+
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDay() - 31);
+
+    const startDate = req.body.startDate || threeDaysAgo;
+    const endDate = req.body.endDate || new Date();
     const data = await Xarajats.find({
-      "date.day": date.day,
-      "date.month": date.month,
-      "date.year": date.year
+      date: {
+        $gte: startDate,
+        $lte: endDate,
+      }
     });
-    res.json(data);
+    return res.json(data);
   } catch (error) {
-    console.log(error);
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 };
 exports.patchFilteredXarajat = async (req, res) => {
@@ -64,10 +92,9 @@ exports.patchFilteredXarajat = async (req, res) => {
 
     const totalAmount = matchingRecords.reduce((acc, record) => acc + record.amount, 0);
 
-    res.json( totalAmount.toFixed(2) );
+    return res.json( totalAmount.toFixed(2) );
   } catch (error) {
-    console.log(error);
-    res.status(500).json({ error: 'An error occurred while processing the request' });
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 };
 exports.aggregateProductsA = async (req, res) => {
@@ -144,132 +171,82 @@ exports.getFilteredHistory = async (req, res) => {
         path: 'name',
       },
     });
-    res.json(data);
+    return res.json(data);
   } catch (error) {
-    console.log(error);
+    res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 };
 exports.getFilteredHistoryr = async (req, res) => {
   try {
-    const { date } = req.body;
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDay() - 31);
+
+    const startDate = req.body.startDate || threeDaysAgo;
+    const endDate = req.body.endDate || new Date();
+
     const data = await Products.find({
-      "saledDate.day": date.day,
-      "saledDate.month": date.month,
-      "saledDate.year": date.year
+      createdAt: {
+        $gte: startDate,
+        $lte: endDate,
+      }
     }).populate("name");
-    console.log(data);
-    res.json(data);
+    return res.json(data);
   } catch (error) {
-    console.log(error);
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 };
 exports.getFilteredHistoryAll = async (req, res) => {
   try {
-    const { date } = req.body;
+    const threeDaysAgo = new Date();
+    threeDaysAgo.setDate(threeDaysAgo.getDay() - 31);
+
+    const startDate = req.body.startDate || threeDaysAgo;
+    const endDate = req.body.endDate || new Date();
+
     const data = await Partiya.find({
-      "date.day": date.day,
-      "date.month": date.month,
-      "date.year": date.year
+      createdAt: {
+        $gte: startDate,
+        $lte: endDate,
+      }
     }).populate("product");
-    res.json(data);
+    return res.json(data);
   } catch (error) {
-    console.log(error);
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 }
 exports.aggregateXarajat = async (req, res) => {
   try {
-    const result = await Xarajats.aggregate([
-      {
-        $group: {
-          _id: {
-            year: "$date.year",
-            month: "$date.month",
-          },
-          totalAmount: { $sum: "$amount" },
-        },
-      },
-      {
-        $sort: {
-          "_id.year": 1,
-          "_id.month": 1,
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          year: "$_id.year",
-          month: "$_id.month",
-          totalAmount: 1,
-        },
-      },
-    ]);
-
-    const monthlySummary = {};
-    const now = new Date();
-    const year = now.getFullYear();
-
-    for (let i = 1; i <= 12; i++) {
-      const month = i;
-      const matchingMonth = result.find((item) => item.month === month && item.year === year);
-      const totalAmount = matchingMonth ? matchingMonth.totalAmount : 0;
-      monthlySummary[month] = totalAmount;
-    }
-
-    res.json({monthlySummary, year});
-  } catch (error) {
-    console.error(error);
-    throw error;
-  }
-};
-exports.aggregateXarajatwithYear = async (req, res) => {
-  const { year } = req.body;
-  try {
+    const year = req.body.year || new Date().getFullYear();
     const result = await Xarajats.aggregate([
       {
         $match: {
-          "date.year": year
+          "date": { $gte: new Date(`${year}-01-01T00:00:00.000Z`), $lt: new Date(`${year + 1}-01-01T00:00:00.000Z`) }
         }
       },
       {
         $group: {
           _id: {
-            year: "$date.year",
-            month: "$date.month",
+            year: { $year: "$date" },
+            month: { $month: "$date" }
           },
           totalAmount: { $sum: "$amount" },
         },
       },
-      {
-        $sort: {
-          "_id.year": 1,
-          "_id.month": 1,
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          year: "$_id.year",
-          month: "$_id.month",
-          totalAmount: 1,
-        },
-      },
     ]);
 
-    const monthlySummary = {};
+
+    const monthlySummary = [];
     for (let i = 1; i <= 12; i++) {
       const month = i;
-      const matchingMonth = result.find((item) => item.month === month);
-      const totalAmount = matchingMonth ? matchingMonth.totalAmount : 0;
-      monthlySummary[month] = totalAmount;
+      const matchingMonth = result.find((item) => item._id.month === month);
+      const totalAmount = matchingMonth ? matchingMonth : { _id: { year: year, month: month }, totalAmount: 0 };
+      monthlySummary.push(totalAmount);
     }
-
-    res.json({monthlySummary, year});
+    return res.json({result: monthlySummary, year});
   } catch (error) {
-    console.error(error);
-    throw error;
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 };
-
 exports.addGlobal = async (req, res) => {
   try {
     const newGlobals = new Globals({
@@ -283,25 +260,24 @@ exports.addGlobal = async (req, res) => {
 };
 exports.getGlobal = async (req, res) => {
   try {
-    
     let globals = await Globals.find();
-    res.json(globals);
-
+    return res.json(globals);
   } catch (error) {
-    console.log(error);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
 exports.getGlobalByName = async (req, res) => {
   try {
     const global = await Globals.findOne({ name: req.params.name });
-    res.json(global);
+    return res.json(global);
   } catch (error) {
-    console.log(error);
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 };
 exports.addProducts = async (req, res) => {
   try {
+    var date = moment();
+
     const global = await Globals.findOne({ name: req.body.name });
     global.quantity += req.body.quantity;
     await global.save();
@@ -310,8 +286,6 @@ exports.addProducts = async (req, res) => {
       const newProducts = new Products({
         name: global._id,
         price: req.body.price,
-        date: req.body.date,
-        time: req.body.time,
         company: req.body.companyName
       });
       await newProducts.save();
@@ -320,7 +294,7 @@ exports.addProducts = async (req, res) => {
         status: 0,
         quantity: 1,
         companyName: req.body.companyName,
-        dateIn: req.body.date
+        dateIn: date.format(),
       });
       await history.save();
     }
@@ -330,8 +304,6 @@ exports.addProducts = async (req, res) => {
       quantity: req.body.quantity,
       price: req.body.price,
       companyName: req.body.companyName,
-      date: req.body.date,
-      time: req.body.time
     });
     await newPartiya.save();
     res.json({saved: true});
@@ -341,15 +313,15 @@ exports.addProducts = async (req, res) => {
 };
 exports.addSellProducts = async (req, res) => {
   try {
+    var date = moment();
     const global = await Globals.findOne({ name: req.body.name });
     global.quantity -= req.body.quantity;
     await global.save();
     
     for (let i = 0; i < req.body.quantity; i++) {
-      const product = await Products.findOne({saledCompany: null});
+      const product = await Products.findOne({name: global._id,saledCompany: null});
       product.saledCompany = req.body.companyName;
-      product.saledDate = req.body.date;
-      product.saledTime = req.body.time;
+      product.saledDate = date.format();
       product.saledPrice = req.body.price;
       await product.save();
 
@@ -421,53 +393,41 @@ exports.aggregateProductsWithYear = async (req, res) => {
 }
 exports.aggregateProducts = async (req, res) => {
   try {
-    const result = await Products.aggregate([
+    const year = req.body.year || new Date().getFullYear();
+
+    let result = await Products.aggregate([
       {
         $match: {
-          saledPrice: { $ne: null } // Filter out documents where saledPrice is null
+          saledPrice: { $ne: null },
+          "saledDate": {
+            $gte: new Date(`${year}-01-01T00:00:00.000Z`), $lt: new Date(`${year + 1}-01-01T00:00:00.000Z`)
+          }
         }
       },
       {
         $group: {
           _id: {
-            year: "$saledDate.year",
-            month: "$saledDate.month",
+            year: { $year: "$date" },
+            month: { $month: "$date" }
           },
-          totalAmount: { $sum: "$price" },
-          totalSaledPrice: { $sum: "$saledPrice" },
-        },
-      },
-      {
-        $sort: {
-          "_id.year": 1,
-          "_id.month": 1,
-        },
-      },
-      {
-        $project: {
-          _id: 0,
-          year: "$_id.year",
-          month: "$_id.month",
-          totalAmount: 1,
-          totalSaledPrice: 1,
+          totalAmount: {
+            $sum: { $subtract: ["$saledPrice", "$price"] }
+          },
         },
       },
     ]);
-    const monthlySummary = {};
-    const now = new Date();
-    const year = now.getFullYear();
 
+    const monthlySummary = [];
     for (let i = 1; i <= 12; i++) {
       const month = i;
-      const matchingMonth = result.find((item) => item.month === month && item.year === year);
-      const totalAmount = matchingMonth ? matchingMonth.totalSaledPrice - matchingMonth.totalAmount : 0;
-      monthlySummary[month] = totalAmount;
+      const matchingMonth = result.find((item) => item._id.month === month);
+      const totalAmount = matchingMonth ? matchingMonth : { _id: { year: year, month: month }, totalAmount: 0 };
+      monthlySummary.push(totalAmount);
     }
 
-    res.json({priceSummary: monthlySummary, year, result});
+    return res.json({result: monthlySummary, year});
   } catch (error) {
-    console.error(error);
-    throw error;
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   } 
 }
 exports.getHistory = async (req, res) => {
@@ -503,9 +463,9 @@ exports.getHistoryAll = async (req, res) => {
       .sort({ _id: -1 })
       .skip(skip)
       .limit(itemsPerPage);
-    res.json(partiyas);
+    return res.json(partiyas);
   } catch (error) {
-    console.log(error);
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 }
 exports.getHistory5 = async (req, res) => {
@@ -532,23 +492,21 @@ exports.getHistory5 = async (req, res) => {
 };
 exports.getDollar = async (req, res) => {
   const { date } = req.body;
-  console.log(date);
   try {
     const resp = await fetch(`https://www.mastercard.com/settlement/currencyrate/conversion-rate?fxDate=${date}&transCurr=USD&crdhldBillCurr=UZS&bankFee=0&transAmt=1`);
     const data = await resp.json();
-    res.json(data);
+    return res.json(data);
   } catch (error) {
-    console.log(error);
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 }
 exports.getRubl = async (req, res) => {
   const { date } = req.body;
-  console.log(date);
   try {
     const resp = await fetch(`https://www.mastercard.com/settlement/currencyrate/conversion-rate?fxDate=${date}&transCurr=RUB&crdhldBillCurr=UZS&bankFee=0&transAmt=1`);
     const data = await resp.json();
-    res.json(data);
+    return res.json(data);
   } catch (error) {
-    console.log(error);
+    return res.status(500).json({ error: 'An error occurred while processing the request' });
   }
 }

@@ -73,27 +73,6 @@
               class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
-
-          <div class="mb-4">
-            <label class="block mb-2 text-sm font-medium text-gray-700"
-              >Дата</label
-            >
-            <input
-              disabled="disabled"
-              :value="`${date.day}.${date.month}.${date.year}`"
-              class="bg-gray-300 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-          <div class="mb-4">
-            <label class="block mb-2 text-sm font-medium text-gray-700"
-              >Время</label
-            >
-            <input
-              disabled="disabled"
-              :value="`${time.hour}:${time.minute}:${time.second}`"
-              class="bg-gray-300 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
           <div>
             <button
               type="submit"
@@ -120,17 +99,6 @@ let ProductName = ref();
 let companyName = ref();
 let amount = ref();
 let quantity = ref();
-let date = reactive({
-  day: "",
-  month: "",
-  year: "",
-});
-let time = reactive({
-  hour: "",
-  minute: "",
-  second: "",
-});
-let success = ref(false);
 let products = ref();
 let maxQuantity = ref(0);
 
@@ -142,19 +110,8 @@ onMounted(async () => {
     console.error(error);
   }
   loading.value = false;
-  updateTimeAndDate();
-  setInterval(updateTimeAndDate, 500);
 });
 
-const updateTimeAndDate = () => {
-  const now = new Date();
-  time.hour = now.getHours();
-  time.minute = now.getMinutes();
-  time.second = now.getSeconds();
-  date.day = now.getDate();
-  date.month = now.getMonth() + 1;
-  date.year = now.getFullYear();
-};
 const handleSubmit = async (e) => {
   e.preventDefault();
   loading.value = true;
@@ -162,11 +119,10 @@ const handleSubmit = async (e) => {
     const data = {
       name: ProductName.value,
       companyName: companyName.value,
-      date,
-      time,
       price: amount.value,
       quantity: quantity.value,
     };
+    console.log(data);
     await $.put("/sellProducts", data);
     await Swal.fire("Сохранено", "Успешно Выпущен", "success");
     ProductName.value = "";

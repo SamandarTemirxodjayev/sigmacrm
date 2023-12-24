@@ -17,34 +17,15 @@ var historySchema = new mongoose.Schema({
     type: String
   },
   date: {
-    day: {
-      type: Number,
-      default: null
-    },
-    month: {
-      type: Number,
-      default: null
-    },
-    year: {
-      type: Number,
-      default: null
-    }
+    type: Date,
+    default: Date.now
   },
   dateIn: {
-    day: {
-      type: Number,
-      default: null
-    },
-    month: {
-      type: Number,
-      default: null
-    },
-    year: {
-      type: Number,
-      default: null
-    }
+    type: Date,
+    default: null
   }
 });
+historySchema.set('timestamps', true);
 var History = mongoose.model("history", historySchema);
 
 module.exports = History;
